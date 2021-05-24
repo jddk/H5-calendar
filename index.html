@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang=">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover"
+    />
+    <title>react H5日历选择</title>
+    <link rel="stylesheet" href="./index.css">
+    <script src="https://cdn.bootcdn.net/ajax/libs/react/16.13.1/umd/react.production.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/react-dom/16.13.1/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/babel-standalone/7.0.0-beta.3/babel.min.js"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="text/babel">
+    function toEnglishMonth(num){
+      let list = ['Jan',"Feb","Mar","Apr", "May","Jun","Jul","Aug","Sept","Oct","Nov","Dec"]
+      for(let i=0;i<list.length;i++){
+        if(num===i+1){
+          return list[i]
+        }
+      }
+    }
+    function toEnglishWeek(day){
+      let num = new Date(day).getDay();
+      let list = ["Sun","Mon","Tues","Web","Thu","Fri","Sat"]
+      for(let i=0;i<list.length;i++){
+        if(num===i){
+          return list[i]
+        }
+      }
+
+    }
+      class Hello extends React.Component {
+        constructor(props){
+          // 初始化props
+          super(props);
+          // 初始化状态
+          this.state = {
+            items:[],
+            active:[],
+            night:0
+          }
+        }
+        
+        componentDidMount(){
+          this.init();
+        }
+
+        init = ()=>{
+            let list = [];
+            let now = new Date();
+            let year = now.getFullYear();
+            let month = now.getMonth()+1;
+            let j = 0;
+            for(let i=0;i<13;i++){
+                if(month+i<13){
+                  list.push({
+                      label:`${month+i},${year}`,
+                      year:year,
+                      month:month+i,
+                      days:[]
+                  })
+                //当月有多少天
+                  let days = new Date(year,month+i,0).getDate();
+                  for(let m=0;m<days;m++){
+                      list[i].days.push({
+                          id:`${year}-${month+i}-${m+1}`,
+                          year:year,
+                          month:month+i,
+                          day:m+1,
+                          checked:false,
+                          parentIndex:i
+                      })
+                  }
+                   // 第一天是周几
+                   
+                   let firstDay = new Date(list[i].days[0].id).getDay()
+                   
+                   let arry=[];
+                   for(let x=0;x<firstDay;x++){
+                     arry.push({
+                       id:`${year}-${month+i-1}-${new Date().getTime()+x}`,
+                       day:'',
+                       checked:false
+                     })
+                   }
+                   let oldDays = [...list[i].days];
+                   list[i].days = [...arry,...oldDays]
+                }else{
+                    list.push({
+                        label:`${j+1},${year+1}`,
+                        year:year+1,
+                        month:j+1,
+                        days:[],
+                    })
+                     let days = new Date(year,j+1,0).getDate();
+                  for(let m=0;m<days;m++){
+                      list[i].days.push({
+                          id:`${year+1}-${j+1}-${m+1}`,
+                          year:year+1,
+                          month:j+1,
+                          day:m+1,
+                          checked:false,
+                          parentIndex:i
+                      })
+                  }
+                    j++;
+
+                    // 第一天是周几
+                   let firstDay = new Date(list[i].days[0].id).getDay()
+                   let arry=[];
+                   for(let x=0;x<firstDay;x++){
+                     arry.push({
+                       id:`${year}-${j}-${new Date().getTime()+x}`,
+                       day:'',
+                       checked:false
+                     })
+                   }
+                   let oldDays = [...list[i].days];
+                   list[i].days = [...arry,...oldDays]
+                }
+            }
+           
+            this.setState({items:list})
+        }
+
+        // 选择
+        clickDay(e){
+            if(e.target.dataset.value){
+                let value = JSON.parse(e.target.dataset.value);
+                let {year,month,day,parentIndex} = value;
+                
+                let active = [...this.state.active];
+                let items = [...this.state.items];
+               
+                if(active.length<2){
+                    active.push({...value})
+                    if(active.length===1){
+                      for(let i=0;i<items[parentIndex].days.length;i++){
+                        if(items[parentIndex].days[i].day === day){
+                          items[parentIndex].days[i].checked = true;
+                          break;
+                        }
+                      }
+                    }else{
+                        let time0 = new Date(active[0].id).getTime();
+                        let time1 = new Date(active[1].id).getTime();
+                        // 如果结束时间小于开始时间对调
+                        if(time0>time1){
+                          let oldActives = JSON.parse(JSON.stringify(active))
+                          active = [oldActives[1],oldActives[0]]
+                        }
+                            // 同年同月
+                            if(active[0].year===active[1].year&&
+                            active[0].month===active[1].month){
+                                items[parentIndex].days.forEach(item=>{
+                                    if(item.day>active[0].day-1&&item.day<active[1].day+1){
+                                        item.checked = true;
+                                    }
+                                })
+                               
+                            }else{
+                                // 同年不在同一个月
+                                // 1、当月end前的都选中
+                                items[active[1].parentIndex].days.forEach(item=>{
+                                    if(item.day<active[1].day+1){
+                                        item.checked = true;
+                                    }
+                                })
+                                // 2、start后的都选中
+                                items[active[0].parentIndex].days.forEach(item=>{
+                                    if(item.day>active[0].day-1){
+                                        item.checked = true;
+                                    }
+                                })
+
+                                // 3、如果中间有全选中
+                                if(active[0].year!==active[1].year || active[1].month !== active[0].month){
+                                  let stamp;
+                                  let stamp0 = new Date(active[0].id).getTime();
+                                  let stamp1 = new Date(active[1].id).getTime();
+                                  items.forEach(item=>{
+                                    stamp = new Date(item.year,item.month,0).getTime();
+                                    // 排除1、2里面处理过的，中间的全选中
+                                    if(stamp>stamp0 && stamp<stamp1 && item.label !== `${active[0].month},${active[0].year}` && item.label!==`${active[1].month},${active[1].year}` ){
+                                      item.days.forEach(cell=>{
+                                        cell.checked = true;
+                                      })
+                                    }
+                                  })
+                                }
+                        }
+                    }
+
+                    let night = 0;
+                    if(active.length===2){
+                      let start = new Date(active[0].id).getTime();
+                      let end = new Date(active[1].id).getTime();
+                      night = Math.floor((end-start)/(24*3600*1000))
+                    }else{
+                      night = 0;
+                    }
+                    this.setState({active,items,night})
+                }else{
+                  let active =[{...value}];
+                  items.forEach((item,i)=>{
+                    item.days.forEach((cell,j)=>{
+                      if(i===parentIndex&&cell.day===day){
+                        cell.checked = true;
+                      }else{
+                        cell.checked = false;
+                      }
+                    })
+                  })
+                  this.setState({
+                    active,
+                    items
+                  })
+                }
+            }
+            console.log(e.target.dataset)
+        }
+        
+        render() {
+          let active = this.state.active;
+            let now = new Date();
+            let year = now.getFullYear();
+            let month = now.getMonth()+1;
+            let nowDay = now.getDate();
+            let stamp = new Date(`${year}-${month}-${nowDay}`).getTime();
+            let radiusClass= (item)=>{
+               if(active.length==1){
+              return 'active-radius'
+            }else if(active.length===2){
+              return ` ${item.id===active[0].id?"active-start":null} ${item.id===active[1].id?"active-end":null}`
+            }
+            }
+           
+            let Cells = (data)=>{
+                let not;
+                return data.map((item)=>{
+                     let itemStamp =  new Date(item.id).getTime();
+                    not = item.parentIndex===0&&item.day<nowDay||item.day==='';
+                    return <div  
+                    key={item.id}
+                    data-value ={not?null:JSON.stringify(item)}
+                    className={`cell ${not?'gray':null} ${item.checked&&item.day?'active':null} 
+                    ${stamp === itemStamp?'today':null} ${radiusClass(item)}
+                   `}>
+                    {stamp ===itemStamp?"Today":item.day}
+                     </div>
+                })
+            }
+           
+            let Items = this.state.items.map((item,i)=>{
+               return <div class="item" key={item.label}>
+                    <div class="date">{toEnglishMonth(item.month)},{item.year}</div>
+                    <div className="cells">
+                        {Cells(item.days)}
+                    </div>
+                </div>
+            })
+
+            let Filters = () => {
+              let active = this.state.active;
+              let start;
+              if(active.length===0){
+                start = <div className="filter">
+                          <h4>
+                          --/--
+                          </h4>
+                          <h4>--.</h4>
+                        </div>
+              }else{
+                start = <div className="filter">
+                          <h4>
+                          {active[0].month>9?active[0].month:`0${active[0].month}`}/{active[0].day>9?active[0].day:`0${active[0].day}`}
+                          </h4>
+                          <h4>{toEnglishWeek(active[0].id)}.</h4>
+                        </div>
+              }
+              let end;
+              if(active.length===2){
+                end =  <div className="filter">
+                          <h4>
+                          {active[1].month>9?active[1].month:`0${active[1].month}`}/{active[1].day>9?active[1].day:`0${active[1].day}`}
+                          </h4>
+                          <h4>{toEnglishWeek(active[1].id)}.</h4>
+                        </div>
+              }else{
+                end = <div className="filter">
+                          <h4>
+                          --/--
+                          </h4>
+                          <h4>--.</h4>
+                        </div>
+              }
+
+            
+      return (
+        <div className="filters">
+          {start}
+          <div className="filter filter-gray">
+            <h4 style={{color:'#ADB5D0'}}>Check-in</h4>
+            <h4  style={{color:'#ADB5D0'}}>date</h4>
+          </div>
+          <div className="filters-center">
+            --
+          </div>
+          <div className="filter filter-gray">
+            <h4 style={{color:'#ADB5D0'}}>Check-out</h4>
+            <h4 style={{color:'#ADB5D0'}}>date</h4>
+          </div>
+         {end}
+        </div>
+      );
+    };
+          return (
+            <div className="test">
+              <div className="header">
+                <h3>Select Dates</h3>
+                {Filters()}
+                <div className="week ">
+                  <div>Sun</div>
+                  <div>Mon</div>
+                  <div>Tues</div>
+                  <div>Web</div>
+                  <div>Thu</div>
+                  <div>Fri</div>
+                  <div>Sat</div>
+                </div>
+              </div>
+              
+            
+            <div className="items" onClick={this.clickDay.bind(this)}>
+                {Items}
+            </div>
+            
+            <div className="footer">
+              <div className={`footer-btn ${this.state.active.length==2?'footer-btn-active':null}`} onClick={()=>{
+               if(this.state.active.length===2){
+                console.log('值',this.state.active)
+               } 
+              }}>OK({this.state.night}night)</div>
+            </div>
+            </div>
+          );
+        }
+      }
+
+      ReactDOM.render(
+        <Hello />,
+        document.getElementById("app")
+      );
+    </script>
+  </body>
+</html>
